@@ -3,12 +3,12 @@ const { Telegraf, Markup } = require('telegraf');
 const mongoose = require('mongoose');
 const http = require('http');
 
-// 1. Render uchun Mini-Server (Uyg'oq turish va Portni band qilish uchun)
+// 1. Render uchun Mini-Server
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200);
     res.end("Bot is running...");
-}).listen(port, () => {
+}).listen(port, "0.0.0.0", () => {
     console.log(`📡 Mini-server ${port}-portda ishlamoqda`);
 });
 
@@ -56,11 +56,10 @@ async function getUnsubscribedChannels(ctx) {
                 const isMember = ['member', 'administrator', 'creator'].includes(member.status);
                 if (!isMember) unsubscribed.push(ch);
             } catch (e) {
-                // Agar bot admin bo'lmasa yoki kanal topilmasa
                 unsubscribed.push(ch); 
             }
         } else {
-            unsubscribed.push(ch); // Tashqi linklar har doim ko'rsatiladi
+            unsubscribed.push(ch); 
         }
     }
     return unsubscribed;
@@ -154,7 +153,6 @@ bot.on('message', async (ctx) => {
     const userId = ctx.from.id;
     const text = ctx.message.text;
 
-    // Admin State Logic
     if (userId === ADMIN_ID && adminState[userId]) {
         let state = adminState[userId];
         if (state.step === 'tg_id') { adminState[userId] = { step: 'tg_link', id: text }; return ctx.reply("Linkni yuboring (https://t.me/...):"); }
@@ -180,7 +178,6 @@ bot.on('message', async (ctx) => {
         }
     }
 
-    // Oddiy foydalanuvchi uchun kod qidirish
     if (text && !text.startsWith('/')) {
         const unsubbed = await getUnsubscribedChannels(ctx);
         if (unsubbed.length > 0) {
@@ -192,7 +189,7 @@ bot.on('message', async (ctx) => {
     }
 });
 
-// 9. Reklama Funksiyasi (Flood himoyasi bilan)
+// 9. Reklama Funksiyasi
 async function broadcast(ctx, msgId, kb = null) {
     const users = await User.find();
     ctx.reply(`🚀 ${users.length} kishiga yuborish boshlandi...`);
@@ -202,7 +199,7 @@ async function broadcast(ctx, msgId, kb = null) {
         try { 
             await ctx.telegram.copyMessage(u.userId, ctx.from.id, msgId, kb); 
             count++;
-            if (count % 25 === 0) await sleep(1000); // Har 25 ta xabarda 1 sek to'xtash
+            if (count % 25 === 0) await sleep(1000); 
         } catch (e) {
             if (e.response && e.response.error_code === 403) blocked++;
         }
@@ -218,20 +215,15 @@ bot.action('btn_no', ctx => {
     }
 });
 
-// 10. Xatoliklarni boshqarish
+// 10. Global Xatolarni boshqarish
 bot.catch((err) => {
     console.error("🔴 Global xato:", err.message);
 });
-try {
-    await bot.telegram.sendMessage(chatId, "Salom!");
-} catch (error) {
-    if (error.response && error.response.error_code === 403) {
-        console.log(`Foydalanuvchi ${chatId} botni bloklagan.`);
-        // Bu yerda bazadan o'chirib tashlash kodini yozish tavsiya etiladi
-    }
-}
 
-bot.launch().then(() => console.log("🚀 Bot muvaffaqiyatli ishga tushdi!"));
+// Botni ishga tushirish (async/await ishlatilmadi, .then ishlatildi)
+bot.launch()
+    .then(() => console.log("🚀 Bot muvaffaqiyatli ishga tushdi!"))
+    .catch((err) => console.error("❌ Bot ishga tushmadi:", err));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
