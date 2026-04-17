@@ -222,6 +222,14 @@ bot.action('btn_no', ctx => {
 bot.catch((err) => {
     console.error("🔴 Global xato:", err.message);
 });
+try {
+    await bot.telegram.sendMessage(chatId, "Salom!");
+} catch (error) {
+    if (error.response && error.response.error_code === 403) {
+        console.log(`Foydalanuvchi ${chatId} botni bloklagan.`);
+        // Bu yerda bazadan o'chirib tashlash kodini yozish tavsiya etiladi
+    }
+}
 
 bot.launch().then(() => console.log("🚀 Bot muvaffaqiyatli ishga tushdi!"));
 
